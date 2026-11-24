@@ -12,6 +12,7 @@ import {
   createInterviewReport,
   evaluateInterviewAnswer,
 } from '../services/interviewServices'
+import { logoutUser } from '../services/authServices'
 
 const answerMarkdownComponents = {
   p: ({ children }) => (
@@ -114,10 +115,13 @@ function Dashboard({ user }) {
     messagesEnd.current?.scrollIntoView({ block: 'end' })
   }, [messages])
 
-  function handleLogout() {
-    sessionStorage.removeItem('access_token')
-    sessionStorage.removeItem('user')
-    navigate('/login')
+  async function handleLogout() {
+    try {
+      await logoutUser()
+      navigate('/login')
+    } catch (logoutError) {
+      setError(logoutError.message)
+    }
   }
 
   async function handleUpload(event) {

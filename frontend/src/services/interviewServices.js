@@ -1,12 +1,9 @@
 const API_URL = import.meta.env.VITE_API_URL
+import { csrfHeaders } from './csrf'
 
-function authHeaders() {
-  const token = sessionStorage.getItem('access_token')
-  if (!token) {
-    throw new Error('Your session has expired. Please log in again.')
-  }
+async function authHeaders() {
   return {
-    Authorization: `Bearer ${token}`,
+    ...await csrfHeaders(),
     'Content-Type': 'application/json',
   }
 }
@@ -14,7 +11,8 @@ function authHeaders() {
 async function postInterview(path, payload, fallbackMessage) {
   const response = await fetch(`${API_URL}/api/interviews/${path}`, {
     method: 'POST',
-    headers: authHeaders(),
+    credentials: 'include',
+    headers: await authHeaders(),
     body: JSON.stringify(payload),
   })
   const data = await response.json()

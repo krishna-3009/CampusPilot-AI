@@ -1,7 +1,8 @@
 
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { registerUser } from '../services/authServices'
+import { loginWithGoogle, registerUser } from '../services/authServices'
+import GoogleSignInButton from '../components/GoogleSignInButton'
 
 function Register() {
   const navigate = useNavigate()
@@ -13,6 +14,19 @@ function Register() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
+
+  const handleGoogleCredential = useCallback(async (credential) => {
+    setError('')
+    setLoading(true)
+    try {
+      await loginWithGoogle(credential)
+      navigate('/dashboard')
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }, [navigate])
 
   async function handleSubmit(event) {
     event.preventDefault()
@@ -67,6 +81,9 @@ function Register() {
             <span className="eyebrow">Create your account</span>
             <h1 className="mt-3">Start your next chapter.</h1>
             <p className="auth-form-description">Set up your space for learning and career growth.</p>
+
+            <GoogleSignInButton onCredential={handleGoogleCredential} text="signup_with" />
+            <div className="auth-divider"><span>or sign up with email</span></div>
 
             <div className="form-field">
               <label htmlFor="register-name">Full name</label>

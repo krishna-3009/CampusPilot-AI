@@ -1,7 +1,8 @@
 
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { loginUser } from '../services/authServices'
+import { loginUser, loginWithGoogle } from '../services/authServices'
+import GoogleSignInButton from '../components/GoogleSignInButton'
 
 function Login() {
   const navigate = useNavigate()
@@ -12,17 +13,26 @@ function Login() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
+  const handleGoogleCredential = useCallback(async (credential) => {
+    setError('')
+    setLoading(true)
+    try {
+      await loginWithGoogle(credential)
+      navigate('/dashboard')
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }, [navigate])
+
   async function handleSubmit(event) {
     event.preventDefault()
     setError('')
     setLoading(true)
 
     try {
-      const data = await loginUser(email, password)
-
-      // Keep the JWT for this browser session
-      sessionStorage.setItem('access_token', data.access_token)
-      sessionStorage.setItem('user', JSON.stringify(data.user))
+      await loginUser(email, password)
 
       navigate('/dashboard')
     } catch (err) {
@@ -62,6 +72,9 @@ function Login() {
             <span className="eyebrow">Welcome back</span>
             <h1 className="mt-3">Good to see you.</h1>
             <p className="auth-form-description">Log in to continue your CampusPilot journey.</p>
+
+            <GoogleSignInButton onCredential={handleGoogleCredential} />
+            <div className="auth-divider"><span>or continue with email</span></div>
 
             <div className="form-field">
               <label htmlFor="login-email">Email address</label>

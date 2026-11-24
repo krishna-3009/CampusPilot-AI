@@ -9,19 +9,11 @@ function ProtectedRoute({ children }) {
 
   useEffect(() => {
     async function verifyUser() {
-      const token = sessionStorage.getItem('access_token')
-
-      if (!token) {
-        setLoading(false)
-        return
-      }
-
       try {
-        const profile = await getProfile(token)
+        const profile = await getProfile()
         setUser(profile)
-      } catch (error) {
-        sessionStorage.removeItem('access_token')
-        sessionStorage.removeItem('user')
+      } catch {
+        setUser(null)
       } finally {
         setLoading(false)
       }

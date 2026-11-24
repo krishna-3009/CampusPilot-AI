@@ -18,7 +18,10 @@ client = MongoClient(
     MONGO_URI,
     tlsCAFile=certifi.where(),
     serverSelectionTimeoutMS=10000,
-    connectTimeoutMS=20000
+    connectTimeoutMS=10000,
+    socketTimeoutMS=20000,
+    retryWrites=True,
+    appName="CampusPilotAI",
 )
 
 db = client["campuspilot"]

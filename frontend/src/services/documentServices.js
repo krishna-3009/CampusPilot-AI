@@ -1,30 +1,27 @@
 const API_URL = import.meta.env.VITE_API_URL
+import { csrfHeaders } from './csrf'
 
 async function readResponse(response, fallbackMessage) {
   const data = await response.json()
 
   if (!response.ok) {
-    throw new Error(data.message || fallbackMessage)
+    throw new Error(data.message || data.msg || fallbackMessage)
   }
 
   return data
 }
 
-function authHeaders() {
-  const token = sessionStorage.getItem('access_token')
-
-  if (!token) {
-    throw new Error('Your session has expired. Please log in again.')
+async function requestOptions(method = 'GET') {
+  const options = { credentials: 'include' }
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+    options.headers = await csrfHeaders()
   }
-
-  return {
-    Authorization: `Bearer ${token}`,
-  }
+  return options
 }
 
 export async function getDocuments() {
   const response = await fetch(`${API_URL}/api/documents/`, {
-    headers: authHeaders(),
+    ...await requestOptions(),
   })
 
   return readResponse(response, 'Could not load your documents')
@@ -35,8 +32,8 @@ export async function uploadDocument(file) {
   body.append('file', file)
 
   const response = await fetch(`${API_URL}/api/documents/upload`, {
+    ...await requestOptions('POST'),
     method: 'POST',
-    headers: authHeaders(),
     body,
   })
 
@@ -49,8 +46,8 @@ export async function analyzeResume(file, jobDescription) {
   body.append('job_description', jobDescription)
 
   const response = await fetch(`${API_URL}/api/resume/analyze`, {
+    ...await requestOptions('POST'),
     method: 'POST',
-    headers: authHeaders(),
     body,
   })
 
@@ -62,8 +59,9 @@ export async function askDocumentQuestion(documentId, question) {
     `${API_URL}/api/documents/${encodeURIComponent(documentId)}/chat`,
     {
       method: 'POST',
+      ...await requestOptions('POST'),
       headers: {
-        ...authHeaders(),
+        ...await csrfHeaders(),
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ question }),
@@ -78,8 +76,9 @@ export async function streamDocumentQuestion(documentId, question, onEvent) {
     `${API_URL}/api/documents/${encodeURIComponent(documentId)}/chat/stream`,
     {
       method: 'POST',
+      ...await requestOptions('POST'),
       headers: {
-        ...authHeaders(),
+        ...await csrfHeaders(),
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ question }),
