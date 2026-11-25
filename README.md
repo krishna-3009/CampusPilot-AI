@@ -44,7 +44,7 @@ Open the URL printed by Vite, usually `http://localhost:5173`.
 ## Production deployment notes
 
 - Configure `APP_ENV=production`, a randomly generated `JWT_SECRET_KEY` with at least 32 characters, and `CORS_ORIGINS` as a comma-separated list of the deployed frontend origins. Do not use localhost origins in production.
-- The Vercel rewrite proxies `/api/*` to the Render API so browser requests and JWT cookies stay on the frontend origin. Leave `VITE_API_URL` unset in Vercel; set it to `http://localhost:5001` only for local development. Keep `CORS_ORIGINS` set to the deployed frontend origin.
+- The Vercel rewrite proxies `/api/*` to the Render API so browser requests and JWT cookies stay on the frontend origin. Production builds always use this same-origin proxy. Local development uses `VITE_API_URL` or defaults to `http://localhost:5001`. Keep `CORS_ORIGINS` set to the deployed frontend origin.
 - Authentication uses an HttpOnly JWT cookie with CSRF protection. Since the Vercel rewrite keeps requests on the frontend origin, `JWT_COOKIE_SAMESITE=Lax` is suitable for deployment.
 - Set `GOOGLE_CLIENT_ID` and `VITE_GOOGLE_CLIENT_ID` to the same Google OAuth **Web application** client ID. Add the deployed frontend origins to its authorized JavaScript origins.
 - Configure `RATELIMIT_STORAGE_URI` to a shared Redis service. The in-memory limiter is only suitable for local development and single-process use.
