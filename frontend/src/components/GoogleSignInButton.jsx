@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 const GOOGLE_SCRIPT = 'https://accounts.google.com/gsi/client'
+const GOOGLE_CLIENT_ID_KEY = '__campusPilotGoogleClientId'
 
 function loadGoogleIdentity() {
   if (window.google?.accounts?.id) return Promise.resolve(window.google)
@@ -22,9 +23,14 @@ function loadGoogleIdentity() {
 
 function GoogleSignInButton({ onCredential, text = 'signin_with' }) {
   const buttonRef = useRef(null)
+  const onCredentialRef = useRef(onCredential)
   const [loadError, setLoadError] = useState('')
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
   const hasWebClientId = /^[0-9]+-[A-Za-z0-9_-]+\.apps\.googleusercontent\.com$/.test(clientId || '')
+
+  useEffect(() => {
+    onCredentialRef.current = onCredential
+  }, [onCredential])
 
   useEffect(() => {
     let active = true
@@ -33,12 +39,16 @@ function GoogleSignInButton({ onCredential, text = 'signin_with' }) {
     loadGoogleIdentity()
       .then((google) => {
         if (!active || !buttonRef.current) return
-        google.accounts.id.initialize({
-          client_id: clientId,
-          callback: (response) => {
-            if (response.credential) onCredential(response.credential)
-          },
-        })
+        if (window[GOOGLE_CLIENT_ID_KEY] !== clientId) {
+          google.accounts.id.initialize({
+            client_id: clientId,
+            callback: (response) => {
+              if (response.credential) onCredentialRef.current(response.credential)
+            },
+          })
+          window[GOOGLE_CLIENT_ID_KEY] = clientId
+        }
+        buttonRef.current.replaceChildren()
         google.accounts.id.renderButton(buttonRef.current, {
           type: 'standard',
           theme: 'outline',
@@ -54,7 +64,7 @@ function GoogleSignInButton({ onCredential, text = 'signin_with' }) {
       })
 
     return () => { active = false }
-  }, [clientId, hasWebClientId, onCredential, text])
+  }, [clientId, hasWebClientId, text])
 
   if (!clientId) {
     return <p className="google-signin-note">Add VITE_GOOGLE_CLIENT_ID to frontend/.env to enable Google sign-in.</p>
