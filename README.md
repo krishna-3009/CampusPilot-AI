@@ -44,7 +44,8 @@ Open the URL printed by Vite, usually `http://localhost:5173`.
 ## Production deployment notes
 
 - Configure `APP_ENV=production`, a randomly generated `JWT_SECRET_KEY` with at least 32 characters, and `CORS_ORIGINS` as a comma-separated list of the deployed frontend origins. Do not use localhost origins in production.
-- Authentication uses an HttpOnly JWT cookie with CSRF protection. Set `JWT_COOKIE_SAMESITE=None` only when the frontend and API are on separate sites, and serve both over HTTPS. The frontend fetches CSRF tokens through the authenticated API; browsers may block third-party cookies, so deploying the frontend and API on the same site is preferred.
+- The Vercel rewrite proxies `/api/*` to the Render API so browser requests and JWT cookies stay on the frontend origin. Leave `VITE_API_URL` unset in Vercel; set it to `http://localhost:5001` only for local development. Keep `CORS_ORIGINS` set to the deployed frontend origin.
+- Authentication uses an HttpOnly JWT cookie with CSRF protection. Since the Vercel rewrite keeps requests on the frontend origin, `JWT_COOKIE_SAMESITE=Lax` is suitable for deployment.
 - Set `GOOGLE_CLIENT_ID` and `VITE_GOOGLE_CLIENT_ID` to the same Google OAuth **Web application** client ID. Add the deployed frontend origins to its authorized JavaScript origins.
 - Configure `RATELIMIT_STORAGE_URI` to a shared Redis service. The in-memory limiter is only suitable for local development and single-process use.
 - If the app runs behind a reverse proxy, set `TRUSTED_PROXY_HOPS` to the number of trusted proxies only after configuring the ingress to replace forwarded IP/protocol headers. This lets rate limits use the real client address without trusting spoofed headers.

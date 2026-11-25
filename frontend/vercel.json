@@ -1,5 +1,9 @@
 {
   "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://campuspilot-ai-iu6a.onrender.com/api/:path*"
+    },
     { "source": "/(.*)", "destination": "/" }
   ]
 }

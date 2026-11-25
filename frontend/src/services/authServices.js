@@ -1,5 +1,5 @@
 
-const API_URL = import.meta.env.VITE_API_URL
+const API_URL = import.meta.env.VITE_API_URL || ''
 import { clearCsrfToken } from './csrf'
 
 async function readResponse(response, fallbackMessage) {
