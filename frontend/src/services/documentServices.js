@@ -22,6 +22,7 @@ async function requestOptions(method = 'GET') {
 export async function getDocuments() {
   const response = await fetch(`${API_URL}/api/documents/`, {
     ...await requestOptions(),
+    cache: 'no-store',
   })
 
   return readResponse(response, 'Could not load your documents')

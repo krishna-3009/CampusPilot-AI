@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, request
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flask_limiter import Limiter
@@ -100,6 +100,8 @@ def create_app(test_config=None):
 
     @app.after_request
     def add_security_headers(response):
+        if request.path.startswith("/api/"):
+            response.headers["Cache-Control"] = "no-store"
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
         response.headers.setdefault("X-Frame-Options", "DENY")
