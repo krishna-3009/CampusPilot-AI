@@ -310,7 +310,7 @@ def stream_document_chat(document_id):
                 question,
                 document_index
             )
-        except (OSError, ValueError):
+        except Exception:
             current_app.logger.exception("Document processing failed")
             yield _encode_stream_event({
                 "type": "error",
@@ -325,12 +325,15 @@ def stream_document_chat(document_id):
             "message": "Writing the answer..."
         })
 
+        text_emitted = False
         try:
             for text in _stream_document_question(question, context):
                 if text is None:
                     yield _encode_stream_event({"type": "reset"})
                     continue
 
+                if text:
+                    text_emitted = True
                 yield _encode_stream_event({
                     "type": "text",
                     "text": text
@@ -356,6 +359,22 @@ def stream_document_chat(document_id):
                 "type": "error",
                 "status": status_code,
                 "message": message
+            })
+            return
+        except Exception:
+            current_app.logger.exception("Unexpected document answer stream failure")
+            yield _encode_stream_event({
+                "type": "error",
+                "status": 502,
+                "message": "Could not generate an answer right now. Please try again."
+            })
+            return
+
+        if not text_emitted:
+            yield _encode_stream_event({
+                "type": "error",
+                "status": 502,
+                "message": "The AI returned an empty answer. Please try again."
             })
             return
 

@@ -222,6 +222,87 @@ class DocumentApiTests(unittest.TestCase):
             [{"page_number": 2, "similarity": 0.81}]
         )
 
+    def test_stream_chat_reports_unexpected_generation_error(self):
+        document_id = str(uuid.uuid4())
+        collection = Mock()
+        collection.find_one.return_value = {"document_id": document_id}
+
+        with tempfile.TemporaryDirectory() as upload_dir:
+            user_dir = Path(upload_dir) / "user-1"
+            user_dir.mkdir()
+            (user_dir / f"{document_id}.pdf").write_bytes(b"%PDF-")
+
+            with (
+                patch("app.routes.documents.UPLOAD_FOLDER", Path(upload_dir)),
+                patch("app.routes.documents.documents_collection", collection),
+                patch(
+                    "app.routes.documents._load_document_index",
+                    return_value={"index": object(), "chunks": []}
+                ),
+                patch(
+                    "app.routes.documents._prepare_document_question",
+                    return_value=("Relevant context.", [])
+                ),
+                patch(
+                    "app.routes.documents._stream_document_question",
+                    side_effect=RuntimeError("stream transport failed")
+                )
+            ):
+                response = self.client.post(
+                    f"/api/documents/{document_id}/chat/stream",
+                    headers=self.headers,
+                    json={"question": "Summarize this document."},
+                    buffered=True
+                )
+
+        events = [
+            json.loads(line)
+            for line in response.get_data(as_text=True).splitlines()
+        ]
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(events[-1]["type"], "error")
+        self.assertEqual(events[-1]["status"], 502)
+
+    def test_stream_chat_rejects_empty_generation(self):
+        document_id = str(uuid.uuid4())
+        collection = Mock()
+        collection.find_one.return_value = {"document_id": document_id}
+
+        with tempfile.TemporaryDirectory() as upload_dir:
+            user_dir = Path(upload_dir) / "user-1"
+            user_dir.mkdir()
+            (user_dir / f"{document_id}.pdf").write_bytes(b"%PDF-")
+
+            with (
+                patch("app.routes.documents.UPLOAD_FOLDER", Path(upload_dir)),
+                patch("app.routes.documents.documents_collection", collection),
+                patch(
+                    "app.routes.documents._load_document_index",
+                    return_value={"index": object(), "chunks": []}
+                ),
+                patch(
+                    "app.routes.documents._prepare_document_question",
+                    return_value=("Relevant context.", [])
+                ),
+                patch(
+                    "app.routes.documents._stream_document_question",
+                    return_value=iter([])
+                )
+            ):
+                response = self.client.post(
+                    f"/api/documents/{document_id}/chat/stream",
+                    headers=self.headers,
+                    json={"question": "Summarize this document."},
+                    buffered=True
+                )
+
+        events = [
+            json.loads(line)
+            for line in response.get_data(as_text=True).splitlines()
+        ]
+        self.assertEqual(events[-1]["type"], "error")
+        self.assertIn("empty answer", events[-1]["message"])
+
     def test_chat_rejects_empty_question(self):
         response = self.client.post(
             f"/api/documents/{uuid.uuid4()}/chat",

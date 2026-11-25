@@ -97,6 +97,8 @@ export async function streamDocumentQuestion(documentId, question, onEvent) {
   const reader = response.body.getReader()
   const decoder = new TextDecoder()
   let buffer = ''
+  let receivedText = false
+  let completed = false
 
   function dispatchLine(line) {
     if (!line.trim()) return
@@ -106,6 +108,10 @@ export async function streamDocumentQuestion(documentId, question, onEvent) {
       throw new Error(event.message || 'Could not get an answer')
     }
 
+    if (event.type === 'text' && typeof event.text === 'string' && event.text.length > 0) {
+      receivedText = true
+    }
+    if (event.type === 'complete') completed = true
     onEvent(event)
   }
 
@@ -125,6 +131,12 @@ export async function streamDocumentQuestion(documentId, question, onEvent) {
     }
 
     dispatchLine(buffer)
+    if (!completed) {
+      throw new Error('The answer stream ended unexpectedly. Please try again.')
+    }
+    if (!receivedText) {
+      throw new Error('No answer was returned. Please try asking again.')
+    }
   } finally {
     reader.releaseLock()
   }
