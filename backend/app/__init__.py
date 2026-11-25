@@ -50,7 +50,9 @@ def create_app(test_config=None):
         JWT_SECRET_KEY=jwt_secret,
         JWT_ACCESS_TOKEN_EXPIRES=timedelta(minutes=30),
         JWT_TOKEN_LOCATION=["cookies", "headers"],
-        JWT_COOKIE_SECURE=environment != "development",
+        # Browsers require Secure on SameSite=None cookies. This also keeps
+        # cross-site HTTPS deployments working if APP_ENV is misconfigured.
+        JWT_COOKIE_SECURE=environment != "development" or cookie_samesite == "None",
         JWT_COOKIE_HTTPONLY=True,
         JWT_COOKIE_SAMESITE=cookie_samesite,
         JWT_COOKIE_CSRF_PROTECT=True,
