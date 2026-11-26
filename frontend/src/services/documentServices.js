@@ -2,7 +2,24 @@ const API_URL = import.meta.env.DEV ? (import.meta.env.VITE_API_URL || 'http://l
 import { csrfHeaders } from './csrf'
 
 async function readResponse(response, fallbackMessage) {
-  const data = await response.json()
+  const contentType = response.headers.get('content-type') || ''
+  const responseText = await response.text()
+  let data
+
+  if (contentType.includes('application/json')) {
+    try {
+      data = JSON.parse(responseText)
+    } catch {
+      throw new Error('The server returned an invalid response. Please try again.')
+    }
+  } else {
+    const normalizedBody = responseText.trimStart().toLowerCase()
+    throw new Error(
+      normalizedBody.startsWith('<!doctype html') || normalizedBody.startsWith('<html')
+        ? 'The API route is returning the app page instead of data. The deployment needs the latest Vercel API rewrite.'
+        : fallbackMessage,
+    )
+  }
 
   if (!response.ok) {
     throw new Error(data.message || data.msg || fallbackMessage)
@@ -88,6 +105,10 @@ export async function streamDocumentQuestion(documentId, question, onEvent) {
 
   if (!response.ok) {
     await readResponse(response, 'Could not get an answer')
+  }
+
+  if (!(response.headers.get('content-type') || '').includes('application/x-ndjson')) {
+    await readResponse(response, 'The server returned an unexpected response.')
   }
 
   if (!response.body) {
